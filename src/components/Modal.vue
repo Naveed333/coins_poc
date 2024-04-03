@@ -1,6 +1,6 @@
 <template>
   <transition name="modal-fade">
-    <div class="modal-mask">
+    <div v-show="showModal" class="modal-mask" @click.self="$emit('close')">
       <div class="modal-wrapper">
         <div class="modal-container">
           <h3 class="modal-title">Select Columns</h3>
@@ -19,18 +19,21 @@
 </template>
 
 <script>
+import { ref } from 'vue';
+
 export default {
   props: ['options'],
-  data() {
-    return {
-      selectedOptions: [],
+  emits: ['save', 'close'],
+  setup(props, { emit }) {
+    const selectedOptions = ref([]);
+    const showModal = ref(true);
+
+    const save = () => {
+      emit('save', selectedOptions.value);
+      emit('close');
     };
-  },
-  methods: {
-    save() {
-      this.$emit('save', this.selectedOptions);
-      this.$emit('close');
-    },
+
+    return { selectedOptions, showModal, save };
   },
 };
 </script>
