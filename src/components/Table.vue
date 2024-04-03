@@ -29,6 +29,7 @@
 </template>
 
 <script>
+import { ref, reactive, onMounted, computed } from 'vue';
 import axios from 'axios';
 import Modal from './Modal.vue';
 
@@ -36,66 +37,45 @@ export default {
   components: {
     Modal,
   },
-  data() {
-    return {
-      showModal: false,
-      availableOptions: [
-        { key: 'fully_diluted_valuation', label: 'Fully Diluted Valuation' },
-        { key: 'total_volume', label: 'Total Volume' },
-        { key: 'high_24h', label: 'High 24h' },
-        { key: 'price_change_24h', label: 'Price Change 24h' },
-        { key: 'market_cap_change_24h', label: 'Market Cap Change 24h' },
-        { key: 'market_cap_change_percentage_24h', label: 'Market Cap Change Percentage 24h' },
-        { key: 'circulating_supply', label: 'Circulating Supply' },
-        { key: 'total_supply', label: 'Total Supply' },
-        { key: 'max_supply', label: 'Max Supply' },
-        { key: 'ath', label: 'Ath' },
-        { key: 'ath_change_percentage', label: 'Ath Change Percentage' },
-        { key: 'ath_date', label: 'Ath Date' },
-        { key: 'atl', label: 'Atl' },
-        { key: 'atl_change_percentage', label: 'Atl Change Percentage' },
-        { key: 'atl_date', label: 'Atl Date' },
-        { key: 'roi', label: 'ROI' },
-        { key: 'last_updated', label: 'Last Updated' },
-      ],
-      defaultColumns: [
-        { key: 'market_cap_rank', label: '#' },
-        { key: 'image', label: 'Image' },
-        { key: 'name', label: 'Name' },
-        { key: 'current_price', label: 'Current Price' },
-        { key: 'market_cap', label: 'Market Cap' },
-        { key: 'price_change_percentage_24h', label: 'Price Change Percentage 24h' },
-      ],
-      visibleColumns: [],
-      coins: [],
-      sortKey: '',
-      sortOrders: {},
-    };
-  },
-  computed: {
-    sortedCoins() {
-      if (!this.sortKey) {
-        return this.coins;
-      }
-      return this.coins.sort((a, b) => {
-        const modifier = this.sortOrders[this.sortKey] === 'desc' ? -1 : 1;
-        if (typeof a[this.sortKey] === 'number' && typeof b[this.sortKey] === 'number') {
-          return modifier * (a[this.sortKey] - b[this.sortKey]);
-        } else {
-          return modifier * a[this.sortKey].toString().localeCompare(b[this.sortKey].toString(), 'en', { sensitivity: 'base' });
-        }
-      });
-    },
-  },
-  mounted() {
-    this.fetchData();
-  },
-  methods: {
-    fetchData() {
+  setup() {
+    const showModal = ref(false);
+    const availableOptions = [
+      { key: 'fully_diluted_valuation', label: 'Fully Diluted Valuation' },
+      { key: 'total_volume', label: 'Total Volume' },
+      { key: 'high_24h', label: 'High 24h' },
+      { key: 'price_change_24h', label: 'Price Change 24h' },
+      { key: 'market_cap_change_24h', label: 'Market Cap Change 24h' },
+      { key: 'market_cap_change_percentage_24h', label: 'Market Cap Change Percentage 24h' },
+      { key: 'circulating_supply', label: 'Circulating Supply' },
+      { key: 'total_supply', label: 'Total Supply' },
+      { key: 'max_supply', label: 'Max Supply' },
+      { key: 'ath', label: 'Ath' },
+      { key: 'ath_change_percentage', label: 'Ath Change Percentage' },
+      { key: 'ath_date', label: 'Ath Date' },
+      { key: 'atl', label: 'Atl' },
+      { key: 'atl_change_percentage', label: 'Atl Change Percentage' },
+      { key: 'atl_date', label: 'Atl Date' },
+      { key: 'roi', label: 'ROI' },
+      { key: 'last_updated', label: 'Last Updated' },
+    ];
+    const defaultColumns = [
+      { key: 'market_cap_rank', label: '#' },
+      { key: 'image', label: 'Image' },
+      { key: 'name', label: 'Name' },
+      { key: 'current_price', label: 'Current Price' },
+      { key: 'market_cap', label: 'Market Cap' },
+      { key: 'price_change_percentage_24h', label: 'Price Change Percentage 24h' },
+    ];
+    const visibleColumns = reactive([]);
+    const coins = ref([]);
+    const sortKey = ref('');
+    const sortOrders = reactive({});
+
+    const fetchData = () => {
       const url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false';
       axios.get(url)
         .then(response => {
-          this.coins = response.data.map(coin => ({
+          coins.value = response.data.map(coin => ({
             market_cap_rank: coin.market_cap_rank,
             image: coin.image,
             name: coin.name,
@@ -120,23 +100,49 @@ export default {
             roi: coin.roi ? coin.roi : 'N/A',
             last_updated: new Date(coin.last_updated).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
           }));
-          this.setDefaultColumns();
+          setDefaultColumns();
         })
         .catch(error => {
           console.error('Error fetching data:', error);
         });
-    },
-    setDefaultColumns() {
-      this.visibleColumns = [...this.defaultColumns];
-    },
-    sort(key) {
-      this.sortKey = key;
-      this.sortOrders[key] = this.sortOrders[key] === 'desc' ? 'asc' : 'desc';
-    },
-    saveColumns(newColumns) {
-      this.visibleColumns = [...this.defaultColumns, ...newColumns];
-    },
-  },
+    };
+
+    const setDefaultColumns = () => {
+      visibleColumns.splice(0, visibleColumns.length, ...defaultColumns);
+    };
+
+    const sort = (key) => {
+      sortKey.value = key;
+      sortOrders[key] = sortOrders[key] === 'desc' ? 'asc' : 'desc';
+    };
+
+    const saveColumns = (newColumns) => {
+      visibleColumns.splice(0, visibleColumns.length, ...defaultColumns, ...newColumns);
+    };
+
+    onMounted(fetchData);
+
+    return {
+      showModal,
+      availableOptions,
+      visibleColumns,
+      sortedCoins: computed(() => {
+        if (!sortKey.value) {
+          return coins.value;
+        }
+        return coins.value.slice().sort((a, b) => {
+          const modifier = sortOrders[sortKey.value] === 'desc' ? -1 : 1;
+          if (typeof a[sortKey.value] === 'number' && typeof b[sortKey.value] === 'number') {
+            return modifier * (a[sortKey.value] - b[sortKey.value]);
+          } else {
+            return modifier * a[sortKey.value].toString().localeCompare(b[sortKey.value].toString(), 'en', { sensitivity: 'base' });
+          }
+        });
+      }),
+      sort,
+      saveColumns
+    };
+  }
 };
 </script>
 
